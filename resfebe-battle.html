@@ -1,0 +1,996 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Resfebe Battle – YTFL</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --bg:#0a1628;--surface:#132240;--surface2:#1a2d52;
+  --gold:#c9a227;--goldl:#e8c55a;--red:#d62828;
+  --green:#1fd172;--wrong:#e84545;
+  --text:#f0e6c8;--muted:#8fa3c8;
+  --border:rgba(201,162,39,.25);
+  --player:#3b82f6;--enemy:#e84545;
+}
+html,body{height:100%;overflow:hidden;}
+body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);
+  display:flex;flex-direction:column;
+  background-image:radial-gradient(ellipse at 15% 0%,#1a3566 0%,transparent 55%),
+                   radial-gradient(ellipse at 85% 100%,#2a1a08 0%,transparent 55%);}
+
+/* ═══ SCREENS ═══ */
+.screen{display:none;flex-direction:column;flex:1;overflow:hidden;}
+.screen.active{display:flex;}
+
+/* ═══ MENU ═══ */
+#menu{align-items:center;justify-content:center;gap:1.2rem;padding:1.5rem;}
+.menu-logo{display:flex;flex-direction:column;align-items:center;gap:.6rem;}
+.menu-logo img{width:80px;height:80px;border-radius:50%;border:3px solid var(--gold);
+  box-shadow:0 0 24px rgba(201,162,39,.5);}
+.menu-logo h1{font-family:'Fredoka One',cursive;font-size:clamp(1.6rem,5vw,2.4rem);
+  color:var(--gold);letter-spacing:1px;text-shadow:0 0 20px rgba(201,162,39,.4);}
+.menu-logo p{color:var(--muted);font-size:.85rem;font-weight:600;}
+.menu-btns{display:flex;flex-direction:column;gap:.7rem;width:100%;max-width:280px;}
+.mbtn{font-family:'Fredoka One',cursive;font-size:1.1rem;border:none;border-radius:14px;
+  padding:.8rem 1.5rem;cursor:pointer;transition:transform .15s,box-shadow .15s;
+  letter-spacing:.5px;}
+.mbtn:hover{transform:scale(1.04);}
+.mbtn.primary{background:linear-gradient(135deg,var(--gold),#a07810);color:#0a1628;
+  box-shadow:0 6px 20px rgba(201,162,39,.4);}
+.mbtn.secondary{background:var(--surface2);color:var(--text);border:1.5px solid var(--border);}
+.mbtn.secondary:hover{border-color:var(--goldl);}
+
+/* ═══ BATTLE SCREEN ═══ */
+#battle{padding:0;}
+
+/* header bar */
+.battle-header{
+  background:linear-gradient(90deg,#0d1e3d,#132240,#1a2d15);
+  border-bottom:2px solid var(--gold);
+  padding:.4rem .8rem;display:flex;align-items:center;gap:.5rem;flex-shrink:0;
+  position:relative;}
+.battle-header::after{content:'';position:absolute;bottom:-3px;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,var(--goldl),transparent);opacity:.5;}
+.bh-logo{display:flex;align-items:center;gap:.4rem;}
+.bh-logo img{width:32px;height:32px;border-radius:50%;border:1.5px solid var(--gold);}
+.bh-title{font-family:'Fredoka One',cursive;font-size:.95rem;color:var(--gold);}
+.bh-right{margin-left:auto;display:flex;align-items:center;gap:.5rem;}
+#diff-selector{display:flex;gap:.25rem;}
+.diff-btn{font-family:'Nunito',sans-serif;font-weight:800;font-size:.62rem;
+  padding:.2rem .5rem;border-radius:99px;border:1.5px solid var(--border);
+  background:var(--surface);color:var(--muted);cursor:pointer;transition:all .15s;}
+.diff-btn.active{background:var(--gold);border-color:var(--gold);color:#0a1628;}
+
+/* hp bars */
+.hp-area{
+  display:flex;align-items:center;gap:.6rem;
+  padding:.5rem .8rem;flex-shrink:0;
+  background:rgba(0,0,0,.25);}
+.combatant{flex:1;display:flex;flex-direction:column;gap:.25rem;}
+.combatant.enemy{align-items:flex-end;}
+.c-label{font-size:.62rem;font-weight:800;letter-spacing:.8px;text-transform:uppercase;}
+.combatant.player .c-label{color:var(--player);}
+.combatant.enemy  .c-label{color:var(--wrong);}
+.hp-track{height:14px;background:rgba(255,255,255,.08);border-radius:99px;overflow:hidden;width:100%;}
+.hp-fill{height:100%;border-radius:99px;transition:width .4s ease;}
+.combatant.player .hp-fill{background:linear-gradient(90deg,#2563eb,#60a5fa);}
+.combatant.enemy  .hp-fill{background:linear-gradient(90deg,#dc2626,#f87171);}
+.hp-text{font-family:'Fredoka One',cursive;font-size:.8rem;}
+.combatant.player .hp-text{color:var(--player);}
+.combatant.enemy  .hp-text{color:var(--wrong);}
+.vs-badge{font-family:'Fredoka One',cursive;font-size:1rem;color:var(--gold);
+  flex-shrink:0;text-shadow:0 0 10px rgba(201,162,39,.5);}
+
+/* fighters */
+.fighters{
+  display:flex;align-items:flex-end;justify-content:space-between;
+  padding:.3rem 1rem;flex-shrink:0;height:90px;position:relative;}
+.fighter{font-size:3.2rem;line-height:1;transition:transform .15s;}
+.fighter.player{transform-origin:bottom left;}
+.fighter.enemy {transform-origin:bottom right;}
+.fighter.attack-right{animation:atkR .3s ease;}
+.fighter.attack-left {animation:atkL .3s ease;}
+.fighter.hurt        {animation:hurt .3s ease;}
+@keyframes atkR{0%{transform:translateX(0)}50%{transform:translateX(22px)}100%{transform:translateX(0)}}
+@keyframes atkL{0%{transform:translateX(0)}50%{transform:translateX(-22px)}100%{transform:translateX(0)}}
+@keyframes hurt{0%,100%{transform:translateX(0)}25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
+.dmg-float{position:absolute;font-family:'Fredoka One',cursive;font-size:1.2rem;
+  pointer-events:none;animation:dmgUp .8s ease forwards;}
+@keyframes dmgUp{0%{opacity:1;transform:translateY(0)}100%{opacity:0;transform:translateY(-50px)}}
+
+/* puzzle area */
+.puzzle-area{
+  flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:.5rem .8rem;gap:.7rem;overflow:hidden;}
+.puzzle-emojis{
+  background:var(--surface2);border:2px solid var(--border);border-radius:18px;
+  padding:.7rem 1.4rem;font-size:clamp(1.6rem,6vw,2.4rem);
+  letter-spacing:3px;text-align:center;
+  box-shadow:0 4px 20px rgba(0,0,0,.4);}
+.puzzle-label{font-size:.68rem;color:var(--muted);font-weight:800;letter-spacing:1px;
+  text-transform:uppercase;}
+
+/* timer ring */
+.timer-wrap{display:flex;align-items:center;gap:.5rem;}
+.timer-ring{position:relative;width:42px;height:42px;flex-shrink:0;}
+.timer-ring svg{transform:rotate(-90deg);}
+.timer-ring circle.bg{fill:none;stroke:rgba(255,255,255,.08);stroke-width:4;}
+.timer-ring circle.fg{fill:none;stroke:var(--gold);stroke-width:4;
+  stroke-dasharray:107;stroke-dashoffset:0;
+  transition:stroke-dashoffset .9s linear,stroke .3s;stroke-linecap:round;}
+.timer-num{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  font-family:'Fredoka One',cursive;font-size:1rem;color:var(--gold);}
+
+/* choices */
+.choices{display:grid;grid-template-columns:1fr 1fr;gap:.5rem;width:100%;max-width:460px;}
+.choice-btn{
+  font-family:'Nunito',sans-serif;font-weight:800;
+  font-size:clamp(.72rem,2.5vw,.9rem);
+  padding:.55rem .7rem;border-radius:14px;
+  border:2px solid var(--border);background:var(--surface2);
+  color:var(--text);cursor:pointer;
+  transition:transform .12s,background .12s,border-color .12s;
+  text-align:center;line-height:1.25;min-height:48px;
+  display:flex;align-items:center;justify-content:center;}
+.choice-btn:hover:not(:disabled){background:#1e3566;border-color:var(--goldl);transform:translateY(-2px);}
+.choice-btn:disabled{cursor:default;}
+.choice-btn.correct-flash{background:rgba(31,209,114,.2);border-color:var(--green);color:var(--green);
+  animation:btnPop .3s ease;}
+.choice-btn.wrong-flash {background:rgba(232,69,69,.2); border-color:var(--wrong);color:var(--wrong);
+  animation:btnShk .3s ease;}
+.choice-btn.reveal      {background:rgba(31,209,114,.1);border-color:var(--green);}
+@keyframes btnPop{0%{transform:scale(1)}50%{transform:scale(1.06)}100%{transform:scale(1)}}
+@keyframes btnShk{0%,100%{transform:translateX(0)}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+
+/* result overlay (inside battle) */
+#result-overlay{
+  position:absolute;inset:0;background:rgba(5,12,26,.88);
+  display:none;align-items:center;justify-content:center;
+  z-index:40;backdrop-filter:blur(4px);}
+#result-overlay.show{display:flex;}
+.result-card{
+  background:linear-gradient(135deg,var(--surface),var(--surface2));
+  border-radius:22px;padding:1.2rem 1.5rem;max-width:340px;width:90%;
+  border:1.5px solid var(--border);
+  box-shadow:0 16px 50px rgba(0,0,0,.6);
+  animation:popIn .3s cubic-bezier(.34,1.56,.64,1);}
+@keyframes popIn{from{transform:scale(.7);opacity:0}to{transform:scale(1);opacity:1}}
+.result-word{font-family:'Fredoka One',cursive;font-size:1.6rem;color:var(--gold);
+  display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;margin-bottom:.25rem;}
+.result-tr  {color:var(--muted);font-weight:700;font-size:.88rem;margin-bottom:.6rem;}
+.result-ex  {background:rgba(255,255,255,.05);border-radius:10px;padding:.55rem .7rem;
+  font-size:.83rem;line-height:1.55;border:1px solid rgba(255,255,255,.07);}
+.result-ex em{color:var(--goldl);font-style:normal;font-weight:800;}
+.result-tr-ex{color:var(--muted);font-size:.78rem;margin-top:.25rem;}
+.result-cd{display:flex;align-items:center;justify-content:center;gap:.5rem;margin-top:.8rem;}
+.cd-ring{position:relative;width:40px;height:40px;flex-shrink:0;}
+.cd-ring svg{transform:rotate(-90deg);}
+.cd-ring circle.bg{fill:none;stroke:rgba(255,255,255,.08);stroke-width:4;}
+.cd-ring circle.fg{fill:none;stroke:var(--gold);stroke-width:4;
+  stroke-dasharray:107;stroke-dashoffset:0;
+  transition:stroke-dashoffset .9s linear,stroke .3s;stroke-linecap:round;}
+.cd-num{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  font-family:'Fredoka One',cursive;font-size:1rem;color:var(--gold);}
+.cd-label{font-size:.72rem;color:var(--muted);font-weight:700;}
+.speak-btn{background:none;border:1.5px solid var(--green);color:var(--green);
+  border-radius:99px;font-family:'Nunito',sans-serif;font-weight:800;
+  font-size:.75rem;padding:.22rem .7rem;cursor:pointer;
+  display:inline-flex;align-items:center;gap:.25rem;transition:background .15s;}
+.speak-btn:hover{background:rgba(31,209,114,.12);}
+.speak-btn.speaking{animation:spkPulse .5s infinite alternate;}
+@keyframes spkPulse{from{opacity:1}to{opacity:.3}}
+
+/* game-over overlay */
+#gameover-overlay{
+  position:absolute;inset:0;background:rgba(5,12,26,.92);
+  display:none;align-items:center;justify-content:center;
+  z-index:50;backdrop-filter:blur(6px);}
+#gameover-overlay.show{display:flex;}
+.go-card{background:linear-gradient(135deg,var(--surface),var(--surface2));
+  border-radius:26px;padding:2rem 1.8rem;max-width:340px;width:90%;
+  text-align:center;border:1.5px solid var(--border);
+  box-shadow:0 24px 70px rgba(0,0,0,.7);
+  animation:popIn .4s cubic-bezier(.34,1.56,.64,1);}
+.go-emoji{font-size:3.5rem;line-height:1;margin-bottom:.5rem;}
+.go-title{font-family:'Fredoka One',cursive;font-size:2rem;color:var(--gold);margin-bottom:.3rem;}
+.go-sub  {color:var(--muted);font-size:.9rem;margin-bottom:1.2rem;line-height:1.5;}
+.go-stats{display:flex;gap:.6rem;justify-content:center;margin-bottom:1.2rem;}
+.gstat{flex:1;border-radius:12px;padding:.6rem;font-family:'Fredoka One',cursive;}
+.gstat.c{background:rgba(31,209,114,.1);color:var(--green); border:1px solid rgba(31,209,114,.25);}
+.gstat.w{background:rgba(232,69,69,.1); color:var(--wrong); border:1px solid rgba(232,69,69,.25);}
+.gstat.a{background:rgba(201,162,39,.1);color:var(--gold);  border:1px solid var(--border);}
+.gstat .gv{font-size:1.8rem;line-height:1;}
+.gstat .gl{font-size:.6rem;font-family:'Nunito',sans-serif;font-weight:800;
+  text-transform:uppercase;letter-spacing:.7px;}
+.go-btns{display:flex;flex-direction:column;gap:.5rem;}
+.go-btn{font-family:'Fredoka One',cursive;font-size:1rem;border:none;border-radius:12px;
+  padding:.7rem 1.5rem;cursor:pointer;transition:transform .15s;}
+.go-btn:hover{transform:scale(1.04);}
+.go-btn.primary{background:linear-gradient(135deg,var(--gold),#a07810);color:#0a1628;}
+.go-btn.secondary{background:var(--surface2);color:var(--text);border:1.5px solid var(--border);}
+
+/* ═══ DICTIONARY SCREEN ═══ */
+#dictionary{padding:0;}
+.dict-header{background:linear-gradient(90deg,#0d1e3d,#132240);
+  border-bottom:2px solid var(--gold);padding:.6rem 1rem;
+  display:flex;align-items:center;gap:.7rem;flex-shrink:0;}
+.dict-back{background:none;border:1.5px solid var(--border);color:var(--muted);
+  border-radius:99px;font-family:'Nunito',sans-serif;font-weight:800;font-size:.8rem;
+  padding:.25rem .75rem;cursor:pointer;transition:all .15s;}
+.dict-back:hover{border-color:var(--goldl);color:var(--goldl);}
+.dict-title{font-family:'Fredoka One',cursive;font-size:1.2rem;color:var(--gold);}
+.dict-search{margin:0 .8rem;padding:.5rem .8rem;flex-shrink:0;}
+.dict-search input{width:100%;background:var(--surface2);border:1.5px solid var(--border);
+  border-radius:12px;padding:.45rem .8rem;color:var(--text);font-family:'Nunito',sans-serif;
+  font-size:.88rem;outline:none;transition:border-color .2s;}
+.dict-search input:focus{border-color:var(--goldl);}
+.dict-search input::placeholder{color:var(--muted);}
+.dict-list{flex:1;overflow-y:auto;padding:.5rem .8rem .8rem;}
+.dict-list::-webkit-scrollbar{width:4px;}
+.dict-list::-webkit-scrollbar-thumb{background:rgba(201,162,39,.3);border-radius:99px;}
+.dict-item{background:var(--surface2);border:1.5px solid var(--border);border-radius:14px;
+  padding:.8rem 1rem;margin-bottom:.5rem;cursor:pointer;transition:border-color .2s,background .2s;}
+.dict-item:hover{border-color:var(--goldl);background:#1e3566;}
+.dict-item-top{display:flex;align-items:center;justify-content:space-between;gap:.5rem;flex-wrap:wrap;}
+.di-emoji{font-size:1.1rem;color:var(--muted);flex:1;min-width:0;font-size:.82rem;}
+.di-answer{font-family:'Fredoka One',cursive;font-size:1.1rem;color:var(--gold);}
+.di-tr    {font-size:.8rem;color:var(--muted);font-weight:700;}
+.dict-item-detail{display:none;margin-top:.6rem;padding-top:.6rem;
+  border-top:1px solid var(--border);}
+.dict-item.open .dict-item-detail{display:block;}
+.di-pron{font-size:.78rem;color:var(--goldl);font-style:italic;margin-bottom:.3rem;}
+.di-ex  {background:rgba(255,255,255,.04);border-radius:8px;padding:.45rem .6rem;
+  font-size:.8rem;line-height:1.5;}
+.di-ex em{color:var(--goldl);font-style:normal;font-weight:800;}
+.di-extr{color:var(--muted);font-size:.75rem;margin-top:.2rem;}
+.di-speak{margin-top:.4rem;}
+
+/* battle screen position:relative for overlays */
+#battle{position:relative;}
+</style>
+</head>
+<body>
+
+<!-- ═══ MENU ═══ -->
+<div id="menu" class="screen active">
+  <div class="menu-logo">
+    <img src="data:image/jpeg;base64,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" alt="YTFL">
+    <h1>Resfebe Battle</h1>
+    <p>Yahya Turan Fen Lisesi</p>
+  </div>
+  <div class="menu-btns">
+    <div id="diff-selector" style="display:flex;gap:.4rem;justify-content:center;margin-bottom:.2rem;">
+      <button class="diff-btn" data-d="easy">🐢 Kolay</button>
+      <button class="diff-btn active" data-d="normal">⚔️ Normal</button>
+      <button class="diff-btn" data-d="hard">🔥 Zor</button>
+    </div>
+    <button class="mbtn primary" onclick="startBattle()">⚔️ Savaşa Başla</button>
+    <button class="mbtn secondary" onclick="showDict()">📚 Kelimeler</button>
+  </div>
+</div>
+
+<!-- ═══ BATTLE ═══ -->
+<div id="battle" class="screen">
+  <!-- header -->
+  <div class="battle-header">
+    <div class="bh-logo">
+      <img src="data:image/jpeg;base64,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" alt="">
+      <span class="bh-title">Resfebe Battle</span>
+    </div>
+    <div class="bh-right">
+      <button class="diff-btn" style="font-size:.65rem;padding:.18rem .5rem;" onclick="goMenu()">🏠 Menü</button>
+    </div>
+  </div>
+
+  <!-- HP -->
+  <div class="hp-area">
+    <div class="combatant player">
+      <span class="c-label">⚔️ Sen</span>
+      <div class="hp-track"><div class="hp-fill" id="player-hp-fill" style="width:100%"></div></div>
+      <span class="hp-text" id="player-hp-text">3 / 3</span>
+    </div>
+    <span class="vs-badge">VS</span>
+    <div class="combatant enemy">
+      <span class="c-label">👾 Düşman</span>
+      <div class="hp-track"><div class="hp-fill" id="enemy-hp-fill" style="width:100%"></div></div>
+      <span class="hp-text" id="enemy-hp-text">8 / 8</span>
+    </div>
+  </div>
+
+  <!-- fighters -->
+  <div class="fighters" id="fighters">
+    <div class="fighter" id="fighter-player">🧑‍🎓</div>
+    <div class="fighter" id="fighter-enemy">👾</div>
+  </div>
+
+  <!-- puzzle -->
+  <div class="puzzle-area">
+    <span class="puzzle-label">🧩 Bu resfebe hangi kelime?</span>
+    <div class="puzzle-emojis" id="puzzle-emojis">…</div>
+    <div class="timer-wrap">
+      <div class="timer-ring">
+        <svg width="42" height="42" viewBox="0 0 42 42">
+          <circle class="bg" cx="21" cy="21" r="17"/>
+          <circle class="fg" id="timer-fg" cx="21" cy="21" r="17"/>
+        </svg>
+        <div class="timer-num" id="timer-num">4</div>
+      </div>
+    </div>
+    <div class="choices" id="choices"></div>
+  </div>
+
+  <!-- result overlay (per-question) -->
+  <div id="result-overlay">
+    <div class="result-card" id="result-card"></div>
+  </div>
+
+  <!-- game-over overlay -->
+  <div id="gameover-overlay">
+    <div class="go-card" id="go-card"></div>
+  </div>
+</div>
+
+<!-- ═══ DICTIONARY ═══ -->
+<div id="dictionary" class="screen">
+  <div class="dict-header">
+    <button class="dict-back" onclick="showMenu()">← Geri</button>
+    <span class="dict-title">📚 Kelime Sözlüğü</span>
+  </div>
+  <div class="dict-search">
+    <input type="text" id="dict-input" placeholder="🔍 Kelime veya Türkçe ara…" oninput="filterDict()">
+  </div>
+  <div class="dict-list" id="dict-list"></div>
+</div>
+
+<script>
+// ═══ DATA ═══════════════════════════════════════════════════════
+const ALL_PUZZLES = [
+  // ── Mevcut + düzeltilmiş ──────────────────────────────────────────────────
+  { emojis:"💧 + ⬇️",                       answer:"Waterfall",                 pron:"WO-ter-fol",           tr:"Şelale",
+    ex:"The <em>waterfall</em> roared as we hiked past it.",
+    exTr:"Yanından geçerken şelale gürlüyordu." },
+  { emojis:"🔥 + 🐶",                        answer:"Hotdog",                    pron:"HOT-dog",              tr:"Sosisli sandviç",
+    ex:"She grabbed a <em>hotdog</em> from the street vendor.",
+    exTr:"Sokak satıcısından bir sosisli sandviç aldı." },
+  { emojis:"🌧️ + 🏹",                       answer:"Rainbow",                   pron:"REYN-bow",             tr:"Gökkuşağı",
+    ex:"A bright <em>rainbow</em> appeared after the storm.",
+    exTr:"Fırtınanın ardından parlak bir gökkuşağı belirdi." },
+  { emojis:"🍯 + 🌙",                        answer:"Honeymoon",                 pron:"HUN-ee-moon",          tr:"Balayı",
+    ex:"They spent their <em>honeymoon</em> in Paris.",
+    exTr:"Balaylarını Paris'te geçirdiler." },
+  { emojis:"🧠 + ⛈️",                        answer:"Brainstorm",                pron:"BREYN-storm",          tr:"Beyin fırtınası yapmak",
+    ex:"Let's <em>brainstorm</em> ideas for the project.",
+    exTr:"Proje için fikirlerimizi beyin fırtınasıyla üretelim." },
+  { emojis:"✌️ + 🍰",                        answer:"Piece of cake",             pron:"PEES ov KEYK",         tr:"Çok kolay (deyim)",
+    ex:"The exam was a <em>piece of cake</em> for her.",
+    exTr:"Sınav onun için çocuk oyuncağıydı." },
+  { emojis:"🔙 + 🦴",                        answer:"Backbone",                  pron:"BAK-bown",             tr:"Omurga / Cesaret",
+    ex:"She showed real <em>backbone</em> in that meeting.",
+    exTr:"O toplantıda gerçek bir cesaret sergiledi." },
+  { emojis:"🌲 + 🍎",                        answer:"Pineapple",                 pron:"PAY-nap-ul",           tr:"Ananas",
+    ex:"She added <em>pineapple</em> chunks to the fruit salad.",
+    exTr:"Meyve salatasına ananas dilimleri ekledi." },
+  { emojis:"🐮 + 👦",                        answer:"Cowboy",                    pron:"KAW-boy",              tr:"Kovboy",
+    ex:"The <em>cowboy</em> rode off into the sunset.",
+    exTr:"Kovboy gün batımına doğru at sürdü." },
+  { emojis:"🛏️ + 🐛",                       answer:"Bedbug",                    pron:"BED-bug",              tr:"Tahtakurusu",
+    ex:"The old hotel had a <em>bedbug</em> problem.",
+    exTr:"Eski otelin tahtakurusu sorunu vardı." },
+  { emojis:"💡 + 🏠",                        answer:"Lighthouse",                pron:"LAYT-haws",            tr:"Deniz feneri",
+    ex:"The <em>lighthouse</em> guided ships through the fog.",
+    exTr:"Deniz feneri gemilere sis içinde rehberlik etti." },
+  { emojis:"👁️ + 🌊 + 🇺",                  answer:"I see you",                 pron:"AY SEE YOO",           tr:"Seni görüyorum",
+    ex:"<em>I see you</em> working so hard every day.",
+    exTr:"Her gün bu kadar çok çalıştığını görüyorum." },
+  { emojis:"🍎 + 👁️",                       answer:"Apple of my eye",           pron:"AP-ul ov may AY",      tr:"Gözümün nuru (deyim)",
+    ex:"My little sister is the <em>apple of my eye</em>.",
+    exTr:"Küçük kız kardeşim gözümün nurudur." },
+  { emojis:"🚫😟 + 🐝 + 😊",               answer:"Don't worry, be happy",     pron:"DOWNT WUR-ee BEE HAP-ee", tr:"Endişelenme, mutlu ol",
+    ex:"<em>Don't worry, be happy</em> — things will work out.",
+    exTr:"Endişelenme, mutlu ol — her şey yoluna girecek." },
+  { emojis:"🧠 + 💪",                        answer:"Knowledge is power",        pron:"NOL-ij IZ PAW-er",     tr:"Bilgi güçtür",
+    ex:"Read every day — <em>knowledge is power</em>.",
+    exTr:"Her gün oku — bilgi güçtür." },
+  { emojis:"🚫😫 + 🚫🏆",                   answer:"No pain, no gain",          pron:"NO PEYN NO GEYN",      tr:"Emeksiz yemek olmaz",
+    ex:"Train hard every morning — <em>no pain, no gain</em>.",
+    exTr:"Her sabah sert antrenman yap — emeksiz yemek olmaz." },
+  { emojis:"🌊 + 🫵 + ⏰",                   answer:"See you later",             pron:"SEE YOO LEY-ter",      tr:"Sonra görüşürüz",
+    ex:"I have to go now — <em>see you later</em>!",
+    exTr:"Şimdi gitmem lazım — sonra görüşürüz!" },
+  { emojis:"👁️ + 🐝 + 🔙",                 answer:"I will be back",            pron:"AY WIL BEE BAK",       tr:"Geri döneceğim",
+    ex:"<em>I will be back</em> in five minutes.",
+    exTr:"Beş dakika içinde geri döneceğim." },
+  { emojis:"🌳 − ee + on",                   answer:"Tron",                      pron:"TRON",                 tr:"Tron (bilim kurgu filmi)",
+    ex:"<em>Tron</em> is a classic sci-fi movie from 1982.",
+    exTr:"Tron, 1982'den kalma klasik bir bilim kurgu filmidir." },
+  { emojis:"🧢 + tain",                      answer:"Captain",                   pron:"KAP-tin",              tr:"Kaptan",
+    ex:"The <em>captain</em> announced a smooth flight ahead.",
+    exTr:"Kaptan, rahat bir uçuş olacağını duyurdu." },
+  { emojis:"🍐 − a + son",                   answer:"Person",                    pron:"PER-sun",              tr:"Kişi / İnsan",
+    ex:"Every <em>person</em> deserves kindness.",
+    exTr:"Her insan nezaketi hak eder." },
+  { emojis:"🛋️ − fa + ft",                  answer:"Soft",                      pron:"SOFT",                 tr:"Yumuşak / Nazik",
+    ex:"The kitten had very <em>soft</em> fur.",
+    exTr:"Yavru kedinin çok yumuşak tüyleri vardı." },
+  { emojis:"📅 − te + rk",                   answer:"Dark",                      pron:"DARK",                 tr:"Karanlık",
+    ex:"The forest was <em>dark</em> and silent at midnight.",
+    exTr:"Orman gece yarısı karanlık ve sessizdi." },
+  { emojis:"🐝 + 🍃 − f + ve + 📥 + 🫵",    answer:"Believe in yourself",       pron:"bih-LEEV in yer-SELF", tr:"Kendine inan",
+    ex:"<em>Believe in yourself</em> and you can do anything.",
+    exTr:"Kendine inan ve her şeyi başarabilirsin." },
+  { emojis:"🔓 − n + r + 🧠",               answer:"Open your brain",           pron:"OH-pen yer BREYN",     tr:"Zihnini aç",
+    ex:"<em>Open your brain</em> to new ideas every day.",
+    exTr:"Her gün yeni fikirlere zihnini aç." },
+  { emojis:"📞 + 🫵 + ⏰",                   answer:"Call you later",            pron:"KOL YOO LEY-ter",      tr:"Seni sonra ararım",
+    ex:"I'm in a meeting — I'll <em>call you later</em>.",
+    exTr:"Toplantıdayım — seni sonra ararım." },
+
+  { emojis:"⏲️ + 🦅",                       answer:"Time flies",                pron:"TAYM FLAYZ",           tr:"Zaman uçup gidiyor",
+    ex:"<em>Time flies</em> when you're having fun.",
+    exTr:"Eğlenirken zaman uçup gidiyor." },
+  { emojis:"🍔 + 😴 + 🔄",                  answer:"Eat, sleep, repeat",        pron:"EET SLEEP rih-PEET",   tr:"Ye, uyu, tekrarla",
+    ex:"During exam week it was just <em>eat, sleep, repeat</em>.",
+    exTr:"Sınav haftasında sadece ye, uyu, tekrarlaydı." },
+  { emojis:"📖 − d + l + 🧬",               answer:"Real life",                 pron:"REEL LAYF",            tr:"Gerçek hayat",
+    ex:"The movie was inspired by <em>real life</em> events.",
+    exTr:"Film gerçek hayat olaylarından esinlendi." },
+
+  // ── Listeden eklenenler (daha önce yoktu) ────────────────────────────────
+  { emojis:"🦶 + 🏀",                        answer:"Football",                  pron:"FUT-bol",              tr:"Futbol / Amerikan futbolu",
+    ex:"They watched the <em>football</em> match together.",
+    exTr:"Maçı birlikte izlediler." },
+  { emojis:"🍳 + 🍰",                        answer:"Pancake",                   pron:"PAN-keyk",             tr:"Pankek",
+    ex:"She made fluffy <em>pancakes</em> for breakfast.",
+    exTr:"Kahvaltı için kabarık pankekler yaptı." },
+  { emojis:"❄️ + 👨",                        answer:"Snowman",                   pron:"SNOW-man",             tr:"Kardan adam",
+    ex:"The kids built a <em>snowman</em> in the garden.",
+    exTr:"Çocuklar bahçede kardan adam yaptı." },
+  { emojis:"👂 + 💍",                        answer:"Earring",                   pron:"EAR-ring",             tr:"Küpe",
+    ex:"She lost one <em>earring</em> at the party.",
+    exTr:"Partide bir küpesini kaybetti." },
+  { emojis:"🌞 + 🌻",                        answer:"Sunflower",                 pron:"SAN-flaw-er",          tr:"Ayçiçeği",
+    ex:"The field was full of bright <em>sunflowers</em>.",
+    exTr:"Tarla parlak ayçiçekleriyle doluydu." },
+  { emojis:"⛈️ + 🧥",                        answer:"Stormcoat",                 pron:"STORM-koht",           tr:"Yağmurluk / fırtına paltosu",
+    ex:"He grabbed his <em>stormcoat</em> before heading out.",
+    exTr:"Dışarı çıkmadan önce yağmurlucunu aldı." },
+  { emojis:"🖐️ + ✍️",                       answer:"Handwriting",               pron:"HAND-ray-ting",        tr:"El yazısı",
+    ex:"Her <em>handwriting</em> is very neat and elegant.",
+    exTr:"El yazısı çok düzgün ve zarif." },
+  { emojis:"🌊 + 🐚",                        answer:"Seashell",                  pron:"SEE-shel",             tr:"Deniz kabuğu",
+    ex:"She collected <em>seashells</em> along the beach.",
+    exTr:"Sahil boyunca deniz kabukları topladı." },
+  { emojis:"🧊 + 🧴",                        answer:"Ice cream",                 pron:"AYS-kreem",            tr:"Dondurma",
+    ex:"Can I have a chocolate <em>ice cream</em>, please?",
+    exTr:"Bir çikolatalı dondurma alabilir miyim?" },
+  { emojis:"☀️ + 🌄",                        answer:"Sunday",                    pron:"SAN-dey",              tr:"Pazar günü",
+    ex:"We always have a family brunch on <em>Sunday</em>.",
+    exTr:"Pazar günleri her zaman aile brunch'ı yaparız." },
+  { emojis:"🚪 + 🔔",                        answer:"Doorbell",                  pron:"DOR-bel",              tr:"Kapı zili",
+    ex:"Someone rang the <em>doorbell</em> at midnight.",
+    exTr:"Gece yarısı biri kapı zilini çaldı." },
+  { emojis:"🌠 + 🐟",                        answer:"Starfish",                  pron:"STAR-fish",            tr:"Denizyıldızı",
+    ex:"They spotted a <em>starfish</em> in the tidal pool.",
+    exTr:"Gelgit havuzunda bir denizyıldızı gördüler." },
+  { emojis:"🌙 + 💡",                        answer:"Moonlight",                 pron:"MOON-layt",            tr:"Ay ışığı",
+    ex:"They danced by the <em>moonlight</em> on the rooftop.",
+    exTr:"Çatıda ay ışığında dans ettiler." },
+  { emojis:"🔋 + 🏦",                        answer:"Powerbank",                 pron:"PAW-er-bank",          tr:"Taşınabilir şarj aleti",
+    ex:"Don't forget to charge your <em>powerbank</em> before the trip.",
+    exTr:"Yolculuktan önce powerbank'ını şarj etmeyi unutma." },
+  { emojis:"🚗 + 🐈",                        answer:"Carpet",                    pron:"KAR-pit",              tr:"Halı",
+    ex:"The living room has a beautiful Persian <em>carpet</em>.",
+    exTr:"Oturma odasında güzel bir İran halısı var." },
+  { emojis:"🍵 + 🏫",                        answer:"Teacher",                   pron:"TEE-cher",             tr:"Öğretmen",
+    ex:"My <em>teacher</em> explained the topic very clearly.",
+    exTr:"Öğretmenim konuyu çok net anlattı." },
+  { emojis:"🔨 + 🧊",                        answer:"Break the ice",             pron:"BREYK the AYS",        tr:"Ortamı yumuşatmak (deyim)",
+    ex:"He told a joke to <em>break the ice</em> at the meeting.",
+    exTr:"Toplantıda ortamı yumuşatmak için bir fıkra anlattı." },
+  { emojis:"👂 + 2️⃣ + 👂",                  answer:"From ear to ear",           pron:"from EAR tu EAR",      tr:"Kulaktan kulağa (çok geniş gülmek)",
+    ex:"She was grinning <em>from ear to ear</em> when she heard the news.",
+    exTr:"Haberi duyunca kulaktan kulağa sırıttı." },
+  { emojis:"⏳ + 💰",                        answer:"Time is money",             pron:"TAYM iz MAN-ee",       tr:"Zaman paradır",
+    ex:"Hurry up — <em>time is money</em>!",
+    exTr:"Acele et — zaman paradır!" },
+  { emojis:"🧈 + 🪰",                        answer:"Butterfly",                 pron:"BAT-er-flay",          tr:"Kelebek",
+    ex:"A beautiful <em>butterfly</em> landed on her hand.",
+    exTr:"Güzel bir kelebek eline kondu." },
+  { emojis:"🚶 + 🧱",                        answer:"Walk into a wall",          pron:"WOK IN-tu a WOL",      tr:"Duvara çarpmak / çıkmaza girmek",
+    ex:"The negotiations <em>walked into a wall</em> again.",
+    exTr:"Müzakereler yeniden çıkmaza girdi." },
+  { emojis:"🐱 + 👜",                        answer:"Let the cat out of the bag", pron:"let the KAT awt ov the BAG", tr:"Sırrı ifşa etmek",
+    ex:"She <em>let the cat out of the bag</em> about the surprise party.",
+    exTr:"Sürpriz parti sırrını ağzından kaçırdı." },
+  { emojis:"🌧️ + 🐱 + 🐶",                  answer:"It's raining cats and dogs", pron:"its REYN-ing KATS and DOGZ", tr:"Bardaktan boşanırcasına yağmak",
+    ex:"Take an umbrella — <em>it's raining cats and dogs</em>.",
+    exTr:"Şemsiye al — bardaktan boşanırcasına yağıyor." },
+  { emojis:"❤️ + 🪨",                        answer:"Heart of stone",            pron:"HART ov STOWN",        tr:"Taş kalpli olmak (deyim)",
+    ex:"He didn't cry once — he has a <em>heart of stone</em>.",
+    exTr:"Hiç ağlamadı — taş kalplinin teki." },
+  { emojis:"🧱 + 🧱",                        answer:"Brick by brick",            pron:"BRIK bay BRIK",        tr:"Adım adım / taş taş üstüne",
+    ex:"They rebuilt the community <em>brick by brick</em>.",
+    exTr:"Topluluğu adım adım yeniden inşa ettiler." },
+  { emojis:"🐺 + 🚪",                        answer:"Wolf at the door",          pron:"WULF at the DOR",      tr:"Kapıda kurt (ekonomik tehlike)",
+    ex:"With bills piling up, there's a <em>wolf at the door</em>.",
+    exTr:"Faturalar birikince kapıda kurt belirir." },
+
+  // ── Bonus: günlük İngilizcede sık kullanılanlar ─────────────────────────
+  { emojis:"🌅 + 🌇",                        answer:"Sunrise",                   pron:"SAN-rayz",             tr:"Gün doğumu",
+    ex:"We woke up early to watch the <em>sunrise</em>.",
+    exTr:"Gün doğumunu izlemek için erken kalktık." },
+  { emojis:"🦁 + ❤️",                        answer:"Lionheart",                 pron:"LAY-on-hart",          tr:"Aslan yürekli",
+    ex:"The soldier was known for being a <em>lionheart</em>.",
+    exTr:"Asker, aslan yürekli olmasıyla tanınırdı." },
+  { emojis:"🌊 + 🏄",                        answer:"Surfboard",                 pron:"SERF-bord",            tr:"Sörf tahtası",
+    ex:"He grabbed his <em>surfboard</em> and ran to the beach.",
+    exTr:"Sörf tahtasını alıp plaja koştu." },
+  { emojis:"🍎 + 🍊 + 🍇",                  answer:"Fruit salad",               pron:"FROOT SAL-ad",         tr:"Meyve salatası",
+    ex:"She made a fresh <em>fruit salad</em> for the picnic.",
+    exTr:"Piknik için taze bir meyve salatası yaptı." },
+  { emojis:"🌍 + 🗺️",                       answer:"World map",                 pron:"WERLD map",            tr:"Dünya haritası",
+    ex:"There was a large <em>world map</em> on the classroom wall.",
+    exTr:"Sınıf duvarında büyük bir dünya haritası vardı." },
+  { emojis:"🐦 + 🏠",                        answer:"Birdhouse",                 pron:"BERD-haws",            tr:"Kuş evi / Kuş yuvası",
+    ex:"He built a <em>birdhouse</em> for the garden.",
+    exTr:"Bahçe için bir kuş evi yaptı." },
+  { emojis:"📚 + 🐛",                        answer:"Bookworm",                  pron:"BUK-werm",             tr:"Kitap kurdu (çok okuyan kişi)",
+    ex:"She's a total <em>bookworm</em> — she reads every night.",
+    exTr:"O tam bir kitap kurdu — her gece okur." },
+  { emojis:"🌧️ + 🌈",                       answer:"After the rain",            pron:"AF-ter the REYN",      tr:"Yağmurdan sonra (güzel şeyler gelir)",
+    ex:"<em>After the rain</em> comes the rainbow.",
+    exTr:"Yağmurdan sonra gökkuşağı gelir." },
+  { emojis:"🎵 + 🎸 + 🥁",                  answer:"Rock and roll",             pron:"ROK and ROHL",         tr:"Rock and roll müzik",
+    ex:"<em>Rock and roll</em> changed music forever.",
+    exTr:"Rock and roll, müziği sonsuza dek değiştirdi." },
+  { emojis:"🤝 + 💼",                        answer:"Business deal",             pron:"BIZ-nes deel",         tr:"İş anlaşması",
+    ex:"They closed the <em>business deal</em> over lunch.",
+    exTr:"Öğle yemeğinde iş anlaşmasını kapattılar." },
+  { emojis:"🌙 + 🐺",                        answer:"Werewolf",                  pron:"WEER-wulf",            tr:"Kurt adam",
+    ex:"The old legend told of a <em>werewolf</em> in the forest.",
+    exTr:"Eski efsane ormandaki bir kurt adamdan söz ediyordu." },
+  { emojis:"🔑 + 🗝️",                       answer:"Key holder",                pron:"KEE hohl-der",         tr:"Anahtar tutacağı / sorumlu kişi",
+    ex:"She is the <em>key holder</em> of the office.",
+    exTr:"O ofisin anahtar tutucusu." },
+  { emojis:"💤 + 🚶",                        answer:"Sleepwalker",               pron:"SLEEP-wo-ker",         tr:"Uyurgezer",
+    ex:"He was a <em>sleepwalker</em> as a child.",
+    exTr:"Çocukken uyurgezdi." },
+  { emojis:"🌿 + 🏠",                        answer:"Greenhouse",                pron:"GREEN-haws",           tr:"Sera",
+    ex:"They grow tomatoes in their <em>greenhouse</em>.",
+    exTr:"Seralarında domates yetiştiriyorlar." },
+  { emojis:"🔥 + 💧",                        answer:"Firefighter",               pron:"FAYR-fay-ter",         tr:"İtfaiyeci",
+    ex:"The brave <em>firefighter</em> rescued the family.",
+    exTr:"Cesur itfaiyeci aileyi kurtardı." },
+  { emojis:"⭐ + 🌟 + ✨",                   answer:"Starlight",                 pron:"STAR-layt",            tr:"Yıldız ışığı",
+    ex:"They walked home by <em>starlight</em>.",
+    exTr:"Eve yıldız ışığında yürüdüler." },
+  { emojis:"🏔️ + 🧗",                       answer:"Rock climbing",             pron:"ROK klaym-ing",        tr:"Kaya tırmanışı",
+    ex:"<em>Rock climbing</em> requires strength and focus.",
+    exTr:"Kaya tırmanışı güç ve konsantrasyon gerektirir." },
+  { emojis:"🛑 + 🕐",                        answer:"Stop watch",                pron:"STOP-woch",            tr:"Kronometre",
+    ex:"He used a <em>stopwatch</em> to time the race.",
+    exTr:"Yarışı zamanlamak için kronometre kullandı." },
+];
+
+// ═══ DIFFICULTY ════════════════════════════════════════════════
+const DIFF = { easy:{time:6,enemyHp:6}, normal:{time:4,enemyHp:8}, hard:{time:3,enemyHp:10} };
+let chosenDiff = 'normal';
+
+document.querySelectorAll('.diff-btn[data-d]').forEach(b=>{
+  b.addEventListener('click',()=>{
+    document.querySelectorAll('.diff-btn[data-d]').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active');
+    chosenDiff = b.dataset.d;
+  });
+});
+
+// ═══ STATE ═════════════════════════════════════════════════════
+const PLAYER_MAX_HP = 3;
+let playerHp, enemyHp, enemyMaxHp;
+let correct, wrong;
+let remaining;       // puzzles not yet used
+let currentPuzzle;
+let currentChoices;
+let timerInterval, timerSecs;
+let resultCdInterval;
+let gameActive = false;
+let currentSpeakBtn = null;
+
+// ═══ SCREENS ═══════════════════════════════════════════════════
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+function goMenu(){ stopAll(); showMenu(); }
+function showMenu(){ showScreen('menu'); }
+function showDict(){
+  buildDict();
+  showScreen('dictionary');
+}
+
+// ═══ SOUND ENGINE ══════════════════════════════════════════════
+const AudioCtx = window.AudioContext||window.webkitAudioContext;
+let _ac=null;
+function ac(){ if(!_ac)_ac=new AudioCtx(); return _ac; }
+
+function snd(freqs,type,vol,gap){
+  try{
+    const c=ac(), t=c.currentTime;
+    freqs.forEach((f,i)=>{
+      const o=c.createOscillator(), g=c.createGain();
+      o.connect(g); g.connect(c.destination);
+      o.type=type; o.frequency.value=f;
+      g.gain.setValueAtTime(0,t+i*gap);
+      g.gain.linearRampToValueAtTime(vol,t+i*gap+0.03);
+      g.gain.exponentialRampToValueAtTime(0.001,t+i*gap+0.3);
+      o.start(t+i*gap); o.stop(t+i*gap+0.35);
+    });
+  }catch(e){}
+}
+const playCorrect = ()=> snd([523,659,784],'sine',.28,.11);
+const playWrong   = ()=> snd([220,180,150],'sawtooth',.18,.09);
+const playWin     = ()=> snd([523,659,784,1047],'sine',.3,.15);
+const playLose    = ()=> snd([392,349,311,261],'sawtooth',.22,.17);
+const playHit     = ()=> snd([150,120],'square',.15,.08);
+
+// ═══ SPEECH ════════════════════════════════════════════════════
+function getBestVoice(){
+  const vs=window.speechSynthesis.getVoices();
+  const ok=v=>v.lang.toLowerCase().startsWith('en')&&!v.name.toLowerCase().includes('turkish');
+  return vs.find(v=>v.lang==='en-US'&&ok(v))||vs.find(v=>v.lang==='en-GB'&&ok(v))||vs.find(ok)||null;
+}
+function speak(text,btn){
+  if(!window.speechSynthesis)return;
+  window.speechSynthesis.cancel();
+  if(currentSpeakBtn){currentSpeakBtn.classList.remove('speaking');currentSpeakBtn=null;}
+  const go=()=>{
+    const u=new SpeechSynthesisUtterance(text);
+    u.rate=0.82; u.pitch=1;
+    const v=getBestVoice(); if(v){u.voice=v;u.lang=v.lang;}else{u.lang='en-US';}
+    if(btn){currentSpeakBtn=btn;btn.classList.add('speaking');
+      u.onend=u.onerror=()=>{btn.classList.remove('speaking');currentSpeakBtn=null;};}
+    window.speechSynthesis.speak(u);
+  };
+  window.speechSynthesis.getVoices().length>0?go():
+    (window.speechSynthesis.onvoiceschanged=()=>{window.speechSynthesis.onvoiceschanged=null;go();});
+}
+
+// ═══ SHUFFLE ═══════════════════════════════════════════════════
+function shuffle(a){
+  const r=[...a];
+  for(let i=r.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[r[i],r[j]]=[r[j],r[i]];}
+  return r;
+}
+
+// ═══ BATTLE START ══════════════════════════════════════════════
+function startBattle(){
+  const d = DIFF[chosenDiff];
+  playerHp   = PLAYER_MAX_HP;
+  enemyHp    = d.enemyHp;
+  enemyMaxHp = d.enemyHp;
+  correct = wrong = 0;
+  remaining  = shuffle([...ALL_PUZZLES]);
+  gameActive = true;
+  updateHpBars();
+  document.getElementById('result-overlay').classList.remove('show');
+  document.getElementById('gameover-overlay').classList.remove('show');
+  showScreen('battle');
+  nextQuestion();
+}
+
+// ═══ HP BARS ═══════════════════════════════════════════════════
+function updateHpBars(){
+  const pPct = (playerHp/PLAYER_MAX_HP)*100;
+  const ePct = (enemyHp/enemyMaxHp)*100;
+  document.getElementById('player-hp-fill').style.width = Math.max(0,pPct)+'%';
+  document.getElementById('enemy-hp-fill').style.width  = Math.max(0,ePct)+'%';
+  document.getElementById('player-hp-text').textContent = `${Math.max(0,playerHp)} / ${PLAYER_MAX_HP}`;
+  document.getElementById('enemy-hp-text').textContent  = `${Math.max(0,enemyHp)} / ${enemyMaxHp}`;
+  // colour player bar when low
+  const pFill = document.getElementById('player-hp-fill');
+  pFill.style.background = playerHp===1
+    ? 'linear-gradient(90deg,#dc2626,#f87171)'
+    : 'linear-gradient(90deg,#2563eb,#60a5fa)';
+}
+
+// ═══ NEXT QUESTION ═════════════════════════════════════════════
+function nextQuestion(){
+  if(!gameActive) return;
+  if(remaining.length===0) remaining=shuffle([...ALL_PUZZLES]);
+
+  // pick puzzle
+  const idx = Math.floor(Math.random()*remaining.length);
+  currentPuzzle = remaining.splice(idx,1)[0];
+
+  // pick 3 wrong choices from other puzzles
+  const others = ALL_PUZZLES.filter(p=>p.answer!==currentPuzzle.answer);
+  const wrongs  = shuffle(others).slice(0,3).map(p=>p.answer);
+  currentChoices = shuffle([currentPuzzle.answer, ...wrongs]);
+
+  // render puzzle
+  document.getElementById('puzzle-emojis').textContent = currentPuzzle.emojis;
+
+  // render choices
+  const cb = document.getElementById('choices');
+  cb.innerHTML='';
+  currentChoices.forEach(ans=>{
+    const btn=document.createElement('button');
+    btn.className='choice-btn';
+    btn.textContent=ans;
+    btn.onclick=()=>onChoice(ans,btn);
+    cb.appendChild(btn);
+  });
+
+  startTimer();
+}
+
+// ═══ TIMER ═════════════════════════════════════════════════════
+function startTimer(){
+  clearInterval(timerInterval);
+  const total = DIFF[chosenDiff].time;
+  timerSecs = total;
+  const circ = 2*Math.PI*17; // r=17
+  const fg = document.getElementById('timer-fg');
+  const tn = document.getElementById('timer-num');
+  fg.style.strokeDasharray  = circ;
+  fg.style.strokeDashoffset = 0;
+  fg.style.stroke = 'var(--gold)';
+  tn.textContent = timerSecs;
+  tn.style.color = 'var(--gold)';
+
+  timerInterval = setInterval(()=>{
+    timerSecs--;
+    tn.textContent = timerSecs;
+    fg.style.strokeDashoffset = circ*(1-timerSecs/total);
+    if(timerSecs<=1){fg.style.stroke='var(--wrong)';tn.style.color='var(--wrong)';}
+    if(timerSecs<=0){
+      clearInterval(timerInterval);
+      onTimeout();
+    }
+  },1000);
+}
+
+function stopTimer(){ clearInterval(timerInterval); }
+
+// ═══ CHOICE HANDLER ════════════════════════════════════════════
+function onChoice(answer, btn){
+  if(!gameActive) return;
+  stopTimer();
+  disableChoices();
+
+  if(answer===currentPuzzle.answer){
+    correct++;
+    playCorrect();
+    btn.classList.add('correct-flash');
+    enemyHp--;
+    updateHpBars();
+    animateFighter('player','attack-right');
+    animateFighter('enemy','hurt');
+    showDmg('enemy','-1 ❤️','var(--green)');
+    setTimeout(()=>{
+      if(!gameActive)return;
+      if(enemyHp<=0){ endBattle('win'); return; }
+      showResult(true);
+    },400);
+  } else {
+    wrong++;
+    playWrong();
+    btn.classList.add('wrong-flash');
+    // reveal correct
+    document.querySelectorAll('.choice-btn').forEach(b=>{
+      if(b.textContent===currentPuzzle.answer) b.classList.add('reveal');
+    });
+    loseLife();
+  }
+}
+
+function onTimeout(){
+  if(!gameActive) return;
+  wrong++;
+  playHit();
+  // reveal correct
+  document.querySelectorAll('.choice-btn').forEach(b=>{
+    if(b.textContent===currentPuzzle.answer) b.classList.add('reveal');
+  });
+  loseLife();
+}
+
+function loseLife(){
+  playerHp--;
+  updateHpBars();
+  animateFighter('enemy','attack-left');
+  animateFighter('player','hurt');
+  showDmg('player','-1 💔','var(--wrong)');
+  setTimeout(()=>{
+    if(!gameActive)return;
+    if(playerHp<=0){ endBattle('lose'); return; }
+    showResult(false);
+  },400);
+}
+
+function disableChoices(){
+  document.querySelectorAll('.choice-btn').forEach(b=>b.disabled=true);
+}
+
+// ═══ FIGHTER ANIMATIONS ════════════════════════════════════════
+function animateFighter(who, cls){
+  const el = document.getElementById('fighter-'+who);
+  el.classList.remove('attack-right','attack-left','hurt');
+  void el.offsetWidth;
+  el.classList.add(cls);
+  setTimeout(()=>el.classList.remove(cls),350);
+}
+
+function showDmg(who, text, color){
+  const fighters = document.getElementById('fighters');
+  const el = document.createElement('div');
+  el.className='dmg-float';
+  el.textContent=text;
+  el.style.color=color;
+  el.style.fontFamily="'Fredoka One',cursive";
+  el.style.left  = who==='enemy' ? '65%' : '20%';
+  el.style.bottom= '10px';
+  el.style.position='absolute';
+  fighters.appendChild(el);
+  setTimeout(()=>el.remove(),900);
+}
+
+// ═══ RESULT PANEL (after each question) ════════════════════════
+function showResult(wasCorrect){
+  const p = currentPuzzle;
+  const overlay = document.getElementById('result-overlay');
+  const card    = document.getElementById('result-card');
+  const total   = 5;
+  const circ    = 2*Math.PI*17;
+
+  const icon = wasCorrect ? '✅' : '❌';
+  const borderCol = wasCorrect ? 'var(--green)' : 'var(--wrong)';
+  card.style.borderColor = borderCol;
+
+  card.innerHTML=`
+    <div class="result-word">
+      ${icon} ${p.answer}
+      <button class="speak-btn" id="res-speak">🔊 Dinle</button>
+    </div>
+    <div class="result-tr">🇹🇷 ${p.tr} &nbsp;·&nbsp; <em style="color:var(--goldl);font-style:normal">${p.pron}</em></div>
+    <div class="result-ex">
+      <div class="en">💬 ${p.ex}</div>
+      <div class="result-tr-ex">🇹🇷 ${p.exTr}</div>
+    </div>
+    <div class="result-cd">
+      <div class="cd-ring">
+        <svg width="40" height="40" viewBox="0 0 40 40">
+          <circle class="bg" cx="20" cy="20" r="17"/>
+          <circle class="fg" id="res-fg" cx="20" cy="20" r="17"
+            style="stroke-dasharray:${circ};stroke-dashoffset:0"/>
+        </svg>
+        <div class="cd-num" id="res-num">${total}</div>
+      </div>
+      <span class="cd-label">saniye içinde devam ediyor</span>
+    </div>
+  `;
+
+  overlay.classList.add('show');
+
+  setTimeout(()=>{
+    const sb=document.getElementById('res-speak');
+    if(sb) speak(p.answer,sb);
+  },200);
+  document.getElementById('res-speak').onclick=()=>speak(p.answer,document.getElementById('res-speak'));
+
+  let secs=total;
+  clearInterval(resultCdInterval);
+  resultCdInterval=setInterval(()=>{
+    secs--;
+    const fg=document.getElementById('res-fg');
+    const nn=document.getElementById('res-num');
+    if(nn) nn.textContent=secs;
+    if(fg) fg.style.strokeDashoffset=circ*(1-secs/total);
+    if(fg&&secs<=2) fg.style.stroke='var(--wrong)';
+    if(secs<=0){
+      clearInterval(resultCdInterval);
+      overlay.classList.remove('show');
+      nextQuestion();
+    }
+  },1000);
+}
+
+// ═══ END BATTLE ════════════════════════════════════════════════
+function endBattle(result){
+  gameActive=false;
+  stopTimer();
+  clearInterval(resultCdInterval);
+  document.getElementById('result-overlay').classList.remove('show');
+
+  if(result==='win'){playWin();}else{playLose();}
+
+  const total = correct+wrong;
+  const pct   = total>0?Math.round(correct/total*100):0;
+  const emoji = result==='win'?'🏆':'💀';
+  const title = result==='win'?'Kazandın!':'Kaybettin!';
+  const sub   = result==='win'
+    ? 'Düşmanı yendin! Harika iş! 🎉'
+    : 'Canların bitti. Tekrar dene! 💪';
+
+  const card = document.getElementById('go-card');
+  card.innerHTML=`
+    <div class="go-emoji">${emoji}</div>
+    <div class="go-title">${title}</div>
+    <div class="go-sub">${sub}</div>
+    <div class="go-stats">
+      <div class="gstat c"><div class="gv">${correct}</div><div class="gl">✅ Doğru</div></div>
+      <div class="gstat w"><div class="gv">${wrong}</div><div class="gl">❌ Yanlış</div></div>
+      <div class="gstat a"><div class="gv">${pct}%</div><div class="gl">🎯 İsabet</div></div>
+    </div>
+    <div class="go-btns">
+      <button class="go-btn primary" onclick="startBattle()">🔄 Tekrar Oyna</button>
+      <button class="go-btn secondary" onclick="goMenu()">🏠 Ana Menü</button>
+    </div>
+  `;
+  document.getElementById('gameover-overlay').classList.add('show');
+}
+
+function stopAll(){
+  gameActive=false;
+  stopTimer();
+  clearInterval(resultCdInterval);
+  window.speechSynthesis&&window.speechSynthesis.cancel();
+  document.getElementById('result-overlay').classList.remove('show');
+  document.getElementById('gameover-overlay').classList.remove('show');
+}
+
+// ═══ DICTIONARY ════════════════════════════════════════════════
+function buildDict(filter=''){
+  const list = document.getElementById('dict-list');
+  list.innerHTML='';
+  const fl = filter.toLowerCase();
+  const items = fl
+    ? ALL_PUZZLES.filter(p=>
+        p.answer.toLowerCase().includes(fl)||
+        p.tr.toLowerCase().includes(fl)||
+        p.pron.toLowerCase().includes(fl))
+    : [...ALL_PUZZLES].sort((a,b)=>a.answer.localeCompare(b.answer));
+
+  items.forEach(p=>{
+    const div=document.createElement('div');
+    div.className='dict-item';
+    div.innerHTML=`
+      <div class="dict-item-top">
+        <span class="di-emoji">${p.emojis}</span>
+        <span class="di-answer">${p.answer}</span>
+        <span class="di-tr">${p.tr}</span>
+      </div>
+      <div class="dict-item-detail">
+        <div class="di-pron">${p.pron}</div>
+        <div class="di-ex">
+          <span class="en">💬 ${p.ex}</span>
+          <div class="di-extr">🇹🇷 ${p.exTr}</div>
+        </div>
+        <div class="di-speak">
+          <button class="speak-btn" onclick="event.stopPropagation();speak('${p.answer.replace(/'/g,"\\'")}',this)">🔊 Dinle</button>
+        </div>
+      </div>
+    `;
+    div.addEventListener('click',()=>div.classList.toggle('open'));
+    list.appendChild(div);
+  });
+  if(!items.length){
+    list.innerHTML='<div style="text-align:center;color:var(--muted);padding:2rem;font-weight:700">Sonuç bulunamadı</div>';
+  }
+}
+
+function filterDict(){
+  buildDict(document.getElementById('dict-input').value);
+}
+
+// preload voices
+if(window.speechSynthesis){
+  window.speechSynthesis.getVoices();
+  window.speechSynthesis.onvoiceschanged=()=>window.speechSynthesis.getVoices();
+}
+</script>
+</body>
+</html>
